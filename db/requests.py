@@ -24,3 +24,27 @@ async def set_name(user_id: int, name: str):
         user = result_db.scalars().first()
         user.name = name
         await db.commit()
+
+
+async def set_age(user_id: int, age: int):
+    async with get_db() as db:
+        result_db = await db.execute(select(User).where(User.id == user_id))
+        user = result_db.scalars().first()
+        user.age = age
+        await db.commit()
+
+
+async def set_gender(user_id: int, gender: str):
+    async with get_db() as db:
+        result_db = await db.execute(select(User).where(User.id == user_id))
+        user = result_db.scalars().first()
+        user.gender = gender
+        await db.commit()
+
+
+async def set_description(user_id: int, description: str):
+    async with get_db() as db:
+        result_db = await db.execute(select(User).where(User.id == user_id))
+        user = result_db.scalars().first()
+        user.about = description
+        await db.commit()

@@ -17,6 +17,17 @@ class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    avatar = Column(LargeBinary)
     about = Column(Text)
+    gender = Column(String)
+    age = Column(Integer)
+
+    media = relationship("Media", back_populates="user", cascade="all, delete-orphan")
     created_at = Column(DateTime, default=datetime.now)
+
+
+class Media(Base):
+    __tablename__ = 'media'
+    id = Column(Integer, primary_key=True)
+    file = Column(LargeBinary)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user = relationship("User", back_populates="media")
