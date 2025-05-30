@@ -48,3 +48,23 @@ async def set_description(user_id: int, description: str):
         user = result_db.scalars().first()
         user.about = description
         await db.commit()
+
+
+async def add_user_media(user_id: int, media: bytes, type: str):
+    async with get_db() as db:
+        new_media = Media(
+            user_id=user_id,
+            file=media,
+            media_type=type
+        )
+        db.add(new_media)
+        await db.commit()
+
+
+async def delete_media(user_id: int):
+    async with get_db() as db:
+        result = await db.execute(select(Media).filter(Media.user_id==user_id))
+        media = result.scalars().all()
+        for med in media:
+            await db.delete(med)
+        await db.commit()

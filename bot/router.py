@@ -1,5 +1,5 @@
 from aiogram import Router
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from bot.command_controllers import *
 from bot.states import Form
 from aiogram.fsm.context import FSMContext
@@ -30,3 +30,13 @@ async def handle_set_gender(message: types.Message, state: FSMContext):
 @main_router.message(Form.description)
 async def handle_set_gender(message: types.Message, state: FSMContext):
     return await set_description_controller(message, state)
+
+
+@main_router.message(Command(commands=['edit']))
+async def handle_edit_profile(message: types.Message, state: FSMContext):
+    return await edit_profile_controller(message, state)
+
+
+@main_router.message(Form.media)
+async def handle_edit_media(message: types.Message, state: FSMContext):
+    return await edit_media_controller(message, state)
