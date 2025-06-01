@@ -11,8 +11,8 @@ from bot.utils import *
 
 async def start_controller(message: types.Message, state: FSMContext):
     user = await get_or_create_new_user(chat_id=message.chat.id)
-    if (user.name is None) or (user.about is None) or (user.gender is None) or (user.age is None):
-        await message.answer(f"Привет! Для твоего аккаунта не найдено уже существующих данных, видимо ты новичок. Чтобы пользоваться нашим ресурсом, тебе необходимо заполнить анкету. Введи своё имя:")
+    if (user.name is None) or (user.about is None) or (user.gender is None) or (user.age is None) or not(await get_user_media(user_id=message.chat.id)) or (user.who_search is None):
+        await message.answer(f"Привет! Для твоего аккаунта не найдено уже существующих данных или данные не полные, видимо ты новичок. Чтобы пользоваться нашим ресурсом, тебе необходимо заполнить анкету. Введи своё имя:")
         await state.set_state(Form.name)
     else:
         await message.answer('Привет! Это бот для знакомств "Микелянджело дай пивчик", главный конкурент "Леонардо дай винчика". Выбери опцию:', reply_markup=main_menu_keyboard)
@@ -91,9 +91,29 @@ async def set_description_controller(message: types.Message, state: FSMContext):
     else:
         await set_description(user_id=message.chat.id, description=message.text)
         await message.answer(
-            "Ваше описание записано в базу данных! Теперь отправьте до 3 фото и/или видео (все ваши предыдущие фото и видео будут удалены и перезаписаны)"
+            "Теперь укажи, какие анкеты тебе показывать:",
+            reply_markup=choose_who_you_search
         )
+        await state.set_state(Form.who_search)
+
+
+async def who_search_controller(message: types.Message, state: FSMContext):
+    if message.text == "Мужчин":
+        await set_who_search(user_id=message.chat.id, target="M")
+        await message.answer("Хорошо! Теперь отправьте до 3 фото и/или видео для своей анкеты (все ваши предыдущие фото и видео будут удалены и перезаписаны)")
         await state.set_state(Form.media)
+    elif message.text == "Женщин":
+        await set_who_search(user_id=message.chat.id, target="W")
+        await message.answer(
+            "Хорошо! Теперь отправьте до 3 фото и/или видео для своей анкеты (все ваши предыдущие фото и видео будут удалены и перезаписаны)")
+        await state.set_state(Form.media)
+    elif message.text == "Кого угодно":
+        await set_who_search(user_id=message.chat.id, target="A")
+        await message.answer(
+            "Хорошо! Теперь отправьте до 3 фото и/или видео для своей анкеты (все ваши предыдущие фото и видео будут удалены и перезаписаны)")
+        await state.set_state(Form.media)
+    else:
+        await message.answer("Используйте клавиатуру для выбора искомых анкет!", reply_markup=choose_who_you_search)
 
 
 async def edit_media_controller(message: types.Message, state: FSMContext):
@@ -146,65 +166,16 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
                 await message.answer("В вашей анкете нет медиафайлов")
                 return
 
-            media_group = []
-            temp_files = []
+
             caption = (
                 f"Ваше имя: {user.name}\n"
                 f"Ваш пол (M - man, W - woman): {user.gender}\n"
                 f"Возраст: {user.age}\n"
-                f"Описание анкеты:\n{user.about}"
+                f"Чьи анкеты вы ищете(W-женские, M-мужские, A-все): {user.who_search}\n"
+                f"Описание анкеты:\n{user.about}\n\n\n"
+                f"Чтобы редактировать свою анкету, нажми /edit"
             )
-
-            for i, media_item in enumerate(media_items):
-                try:
-                    # Создаем временный файл
-                    suffix = '.jpg' if media_item.media_type == 'photo' else '.mp4'
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
-                        temp_file.write(media_item.file)
-                        temp_path = temp_file.name
-                        temp_files.append(temp_path)
-
-                    # Создаем медиа объект
-                    if media_item.media_type == 'photo':
-                        media = types.InputMediaPhoto(
-                            media=types.FSInputFile(temp_path),
-                            caption=caption if i == 0 else None
-                        )
-                    elif media_item.media_type == 'video':
-                        media = types.InputMediaVideo(
-                            media=types.FSInputFile(temp_path),
-                            caption=caption if i == 0 else None
-                        )
-                    else:
-                        continue
-
-                    media_group.append(media)
-
-                except Exception as e:
-                    await message.answer(f"Ошибка при обработке файла: {e}")
-                    # Удаляем временные файлы при ошибке
-                    for path in temp_files:
-                        try:
-                            os.unlink(path)
-                        except:
-                            pass
-                    return
-
-            # Отправляем медиагруппу
-            try:
-                await message.bot.send_media_group(
-                    chat_id=message.chat.id,
-                    media=media_group
-                )
-            except TelegramAPIError as e:
-                await message.answer(f"Ошибка при отправке: {e}")
-            finally:
-                # Удаляем временные файлы после отправки
-                for path in temp_files:
-                    try:
-                        os.unlink(path)
-                    except:
-                        pass
+            await send_media_group_with_caption(media_items=media_items, caption=caption, bot=message.bot, chat_id=message.chat.id)
 
         except Exception as e:
             await message.answer(f"Произошла непредвиденная ошибка: {e}")

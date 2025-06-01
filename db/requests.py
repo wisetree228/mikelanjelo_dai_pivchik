@@ -50,6 +50,14 @@ async def set_description(user_id: int, description: str):
         await db.commit()
 
 
+async def set_who_search(user_id: int, target: str):
+    async with get_db() as db:
+        result_db = await db.execute(select(User).where(User.id == user_id))
+        user = result_db.scalars().first()
+        user.who_search = target
+        await db.commit()
+
+
 async def add_user_media(user_id: int, media: bytes, type: str):
     async with get_db() as db:
         new_media = Media(

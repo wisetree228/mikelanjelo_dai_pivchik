@@ -45,3 +45,8 @@ async def handle_edit_media(message: types.Message, state: FSMContext):
 @main_router.message(Form.main_menu)
 async def handle_main_menu(message: types.Message, state: FSMContext):
     return await main_menu_controller(message, state)
+
+
+@main_router.message(Form.who_search)
+async def handle_who_search(message: types.Message, state: FSMContext):
+    return await who_search_controller(message, state)

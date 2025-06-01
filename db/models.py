@@ -20,6 +20,7 @@ class User(Base):
     about = Column(Text)
     gender = Column(String)
     age = Column(Integer)
+    who_search = Column(String)
 
     media = relationship("Media", back_populates="user", cascade="all, delete-orphan")
     created_at = Column(DateTime, default=datetime.now)
@@ -32,3 +33,10 @@ class Media(Base):
     media_type = Column(String)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     user = relationship("User", back_populates="media")
+
+
+class Like(Base):
+    __tablename__ = 'likes'
+    id = Column(Integer, primary_key=True)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    getter_id = Column(Integer, ForeignKey("users.id"), nullable=False)
