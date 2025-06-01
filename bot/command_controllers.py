@@ -1,17 +1,22 @@
+from aiogram.exceptions import TelegramAPIError
+import tempfile
+import os
 from db.requests import *
 from aiogram.fsm.context import FSMContext
 from aiogram import types
+from io import BytesIO
 from bot.states import Form
 from bot.keyboards import *
 from bot.utils import *
 
 async def start_controller(message: types.Message, state: FSMContext):
     user = await get_or_create_new_user(chat_id=message.chat.id)
-    if not(user.name):
+    if (user.name is None) or (user.about is None) or (user.gender is None) or (user.age is None):
         await message.answer(f"Привет! Для твоего аккаунта не найдено уже существующих данных, видимо ты новичок. Чтобы пользоваться нашим ресурсом, тебе необходимо заполнить анкету. Введи своё имя:")
         await state.set_state(Form.name)
     else:
         await message.answer('Привет! Это бот для знакомств "Микелянджело дай пивчик", главный конкурент "Леонардо дай винчика". Выбери опцию:', reply_markup=main_menu_keyboard)
+        await state.set_state(Form.main_menu)
 
 
 async def edit_profile_controller(message: types.Message, state: FSMContext):
@@ -30,7 +35,11 @@ async def set_name_controller(message: types.Message, state: FSMContext):
         await state.set_state(Form.name)
     else:
         await set_name(user_id=user.id, name=message.text)
-        await message.answer("Твоё имя записано в базу данных! Теперь введи свой возраст:")
+        # await message.answer(
+        #     '<b>введи возраст</b><a href="tg://user?id=945243562">какой-то юзер</a>',
+        #     parse_mode="HTML"
+        # )
+        await message.answer("Отлично! Теперь введи свой возраст:")
         await state.set_state(Form.age)
 
 
@@ -82,7 +91,7 @@ async def set_description_controller(message: types.Message, state: FSMContext):
     else:
         await set_description(user_id=message.chat.id, description=message.text)
         await message.answer(
-            "Ваше описание записано в базу данных! Теперь отправьте до 3 фото и/или видео"
+            "Ваше описание записано в базу данных! Теперь отправьте до 3 фото и/или видео (все ваши предыдущие фото и видео будут удалены и перезаписаны)"
         )
         await state.set_state(Form.media)
 
@@ -119,3 +128,88 @@ async def edit_media_controller(message: types.Message, state: FSMContext):
                 video = await bot.download_file(file.file_path)
                 video_bytes = video.read()
                 await add_user_media(user_id=message.chat.id, media=video_bytes, type='video')
+            await message.answer('Ваши медиа добавлены в базу данных! Теперь выберите опцию:', reply_markup=main_menu_keyboard)
+            await state.set_state(Form.main_menu)
+
+
+async def main_menu_controller(message: types.Message, state: FSMContext):
+    if message.text == "Смотреть мою анкету":
+        try:
+            await message.answer("Ищем информацию о тебе...")
+            user = await get_or_create_new_user(chat_id=message.chat.id)
+            if not user:
+                await message.answer("Не удалось найти ваши данные")
+                return
+
+            media_items = await get_user_media(message.chat.id)
+            if not media_items:
+                await message.answer("В вашей анкете нет медиафайлов")
+                return
+
+            media_group = []
+            temp_files = []
+            caption = (
+                f"Ваше имя: {user.name}\n"
+                f"Ваш пол (M - man, W - woman): {user.gender}\n"
+                f"Возраст: {user.age}\n"
+                f"Описание анкеты:\n{user.about}"
+            )
+
+            for i, media_item in enumerate(media_items):
+                try:
+                    # Создаем временный файл
+                    suffix = '.jpg' if media_item.media_type == 'photo' else '.mp4'
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+                        temp_file.write(media_item.file)
+                        temp_path = temp_file.name
+                        temp_files.append(temp_path)
+
+                    # Создаем медиа объект
+                    if media_item.media_type == 'photo':
+                        media = types.InputMediaPhoto(
+                            media=types.FSInputFile(temp_path),
+                            caption=caption if i == 0 else None
+                        )
+                    elif media_item.media_type == 'video':
+                        media = types.InputMediaVideo(
+                            media=types.FSInputFile(temp_path),
+                            caption=caption if i == 0 else None
+                        )
+                    else:
+                        continue
+
+                    media_group.append(media)
+
+                except Exception as e:
+                    await message.answer(f"Ошибка при обработке файла: {e}")
+                    # Удаляем временные файлы при ошибке
+                    for path in temp_files:
+                        try:
+                            os.unlink(path)
+                        except:
+                            pass
+                    return
+
+            # Отправляем медиагруппу
+            try:
+                await message.bot.send_media_group(
+                    chat_id=message.chat.id,
+                    media=media_group
+                )
+            except TelegramAPIError as e:
+                await message.answer(f"Ошибка при отправке: {e}")
+            finally:
+                # Удаляем временные файлы после отправки
+                for path in temp_files:
+                    try:
+                        os.unlink(path)
+                    except:
+                        pass
+
+        except Exception as e:
+            await message.answer(f"Произошла непредвиденная ошибка: {e}")
+
+    elif message.text == "Листать анкеты":
+        await message.answer("Режим просмотра анкет")
+    else:
+        await message.answer("Введите одну из предоставленных на клавиатуре команд")

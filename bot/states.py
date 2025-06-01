@@ -7,3 +7,4 @@ class Form(StatesGroup):
     media = State()
     age = State()
     gender = State()
+    main_menu = State()

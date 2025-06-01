@@ -40,3 +40,8 @@ async def handle_edit_profile(message: types.Message, state: FSMContext):
 @main_router.message(Form.media)
 async def handle_edit_media(message: types.Message, state: FSMContext):
     return await edit_media_controller(message, state)
+
+
+@main_router.message(Form.main_menu)
+async def handle_main_menu(message: types.Message, state: FSMContext):
+    return await main_menu_controller(message, state)

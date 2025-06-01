@@ -15,7 +15,7 @@ async def get_or_create_new_user(chat_id: int):
         db.add(new_user)
         await db.commit()
         await db.refresh(new_user)
-        return User
+        return new_user
 
 
 async def set_name(user_id: int, name: str):
@@ -68,3 +68,9 @@ async def delete_media(user_id: int):
         for med in media:
             await db.delete(med)
         await db.commit()
+
+
+async def get_user_media(user_id: int):
+    async with get_db() as db:
+        result = await db.execute(select(Media).filter(Media.user_id==user_id))
+        return result.scalars().all()
