@@ -9,3 +9,4 @@ class Form(StatesGroup):
     gender = State()
     main_menu = State()
     who_search = State()
+    like = State()

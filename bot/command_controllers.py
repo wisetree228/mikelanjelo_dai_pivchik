@@ -176,11 +176,36 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
                 f"Чтобы редактировать свою анкету, нажми /edit"
             )
             await send_media_group_with_caption(media_items=media_items, caption=caption, bot=message.bot, chat_id=message.chat.id)
+            await state.set_state(Form.main_menu)
 
         except Exception as e:
             await message.answer(f"Произошла непредвиденная ошибка: {e}")
 
     elif message.text == "Листать анкеты":
-        await message.answer("Режим просмотра анкет")
+        await message.answer("Ищем вам анкету...")
+        anket = await get_random_anket_for_match(user_id=message.chat.id)
+        await send_media_group_with_caption(media_items=await get_user_media(anket.id), caption=await get_caption_for_user(anket), bot=message.bot, chat_id=message.chat.id)
+        await state.update_data(object_id=anket.id)
+        await message.answer("Выберите опцию:", reply_markup=like_keyboard)
+        await state.set_state(Form.like)
     else:
         await message.answer("Введите одну из предоставленных на клавиатуре команд")
+
+
+async def like_controller(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    anket_id = data.get('object_id')
+    if message.text == "Лайк":
+        await create_like(author_id=message.chat.id, getter_id=anket_id)
+        data.pop('object_id')
+        await state.update_data(**data)
+        await message.answer('Ваш лайк записан. Выберите опцию:', reply_markup=main_menu_keyboard)
+        await state.set_state(Form.main_menu)
+    elif message.text == "Дизлайк":
+        data.pop('object_id')
+        await state.update_data(**data)
+        await message.answer('Окей, выберите опцию:', reply_markup=main_menu_keyboard)
+        await state.set_state(Form.main_menu)
+    else:
+        await message.answer("Я тебя не понимаю! Выбери одну из предоставленных опций:", reply_markup=like_keyboard)
+        await state.set_state(Form.like)

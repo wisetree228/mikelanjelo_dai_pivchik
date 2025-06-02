@@ -1,8 +1,6 @@
 from aiogram import types, Bot
 from typing import List
-
 from aiogram.exceptions import TelegramAPIError
-
 from db.models import *
 import tempfile
 
@@ -58,3 +56,13 @@ async def send_media_group_with_caption(media_items: List[Media], caption: str, 
                 os.unlink(path)
             except:
                 pass
+
+
+async def get_caption_for_user(user: User):
+    caption = (
+        f"Имя: {user.name}\n"
+        f"Пол (M - man, W - woman): {user.gender}\n"
+        f"Возраст: {user.age}\n"
+        f"Описание:\n{user.about}\n\n\n"
+    )
+    return caption

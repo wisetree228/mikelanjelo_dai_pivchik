@@ -15,3 +15,8 @@ choose_who_you_search = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="Мужчин"), KeyboardButton(text="Женщин")],
     [KeyboardButton(text="Кого угодно")]
 ], resize_keyboard=True, one_time_keyboard=True)
+
+
+like_keyboard = ReplyKeyboardMarkup(keyboard=[
+    [KeyboardButton(text="Лайк"), KeyboardButton(text="Дизлайк")]
+], resize_keyboard=True, one_time_keyboard=True)

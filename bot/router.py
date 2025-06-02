@@ -50,3 +50,8 @@ async def handle_main_menu(message: types.Message, state: FSMContext):
 @main_router.message(Form.who_search)
 async def handle_who_search(message: types.Message, state: FSMContext):
     return await who_search_controller(message, state)
+
+
+@main_router.message(Form.like)
+async def handle_like(message: types.Message, state: FSMContext):
+    return await like_controller(message, state)
