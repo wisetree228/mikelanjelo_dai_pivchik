@@ -5,10 +5,13 @@ choose_gender_keyboard = ReplyKeyboardMarkup(keyboard=[
 ], resize_keyboard=True, one_time_keyboard=True)
 
 
-main_menu_keyboard = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text="Смотреть мою анкету")],
-    [KeyboardButton(text="Листать анкеты")]
-], resize_keyboard=True, one_time_keyboard=True)
+async def get_main_menu_keyboard(likes_count: int):
+    main_menu_keyboard = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="Смотреть мою анкету")],
+        [KeyboardButton(text="Листать анкеты")],
+        [KeyboardButton(text=f"Входящие лайки: {likes_count}")]
+    ], resize_keyboard=True, one_time_keyboard=True)
+    return main_menu_keyboard
 
 
 choose_who_you_search = ReplyKeyboardMarkup(keyboard=[

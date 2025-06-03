@@ -10,3 +10,4 @@ class Form(StatesGroup):
     main_menu = State()
     who_search = State()
     like = State()
+    match = State()

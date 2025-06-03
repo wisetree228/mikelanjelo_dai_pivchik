@@ -21,6 +21,7 @@ class User(Base):
     gender = Column(String)
     age = Column(Integer)
     who_search = Column(String)
+    username = Column(String)
 
     media = relationship("Media", back_populates="user", cascade="all, delete-orphan")
     likes_created = relationship("Like", foreign_keys='Like.author_id', back_populates="author")

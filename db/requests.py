@@ -1,18 +1,28 @@
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_, or_, delete
+from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.async_session_generator import get_db
 from db.models import *
 
-async def get_or_create_new_user(chat_id: int):
+async def get_or_create_new_user(chat_id: int, change_us: bool = False, username: str = None):
     async with get_db() as db:
         result_db = await db.execute(select(User).where(User.id==chat_id))
         user = result_db.scalars().first()
         if user:
+            if change_us:
+                user.username = username
+                await db.commit()
             return user
-        new_user = User(
-            id=chat_id
-        )
+        if username is None:
+            new_user = User(
+                id=chat_id
+            )
+        else:
+            new_user = User(
+                id=chat_id,
+                username=username
+            )
         db.add(new_user)
         await db.commit()
         await db.refresh(new_user)
@@ -97,7 +107,8 @@ async def get_random_anket_for_match(user_id: int):
                     or_(
                         User.who_search == user.gender,
                         User.who_search == 'A'
-                    )
+                    ),
+                    User.id != user_id
                 )
             ).order_by(func.random()).limit(1))
             another_user = result.scalars().first()
@@ -110,7 +121,8 @@ async def get_random_anket_for_match(user_id: int):
                     or_(
                         User.who_search == user.gender,
                         User.who_search == 'A'
-                    )
+                    ),
+                    User.id != user_id
                 )
             ).order_by(func.random()).limit(1))
             another_user = result.scalars().first()
@@ -122,7 +134,8 @@ async def get_random_anket_for_match(user_id: int):
                     or_(
                         User.who_search == user.gender,
                         User.who_search == 'A'
-                    )
+                    ),
+                    User.id != user_id
                 )
             ).order_by(func.random()).limit(1))
             another_user = result.scalars().first()
@@ -136,4 +149,36 @@ async def create_like(author_id: int, getter_id: int):
             author_id=author_id
         )
         db.add(like)
+        await db.commit()
+
+
+async def get_likes_count(user_id: int):
+    async with get_db() as db:
+        count = await db.execute(select(func.count(Like.id)).where(Like.getter_id == user_id))
+        return count.scalar_one()
+
+
+async def get_first_got_like_anket(user_id: int):
+    async with get_db() as db:
+        result = await db.execute(select(Like).where(Like.getter_id == user_id).options(
+            joinedload(Like.author)
+        ))
+        like = result.scalars().first()
+        return like.author
+
+
+async def delete_likes_between_users(first_user_id: int, second_user_id: int):
+    async with get_db() as db:
+        await db.execute(delete(Like).where(
+            or_(
+                and_(
+                    Like.author_id == first_user_id,
+                    Like.getter_id == second_user_id
+                ),
+                and_(
+                    Like.author_id == second_user_id,
+                    Like.getter_id == first_user_id
+                )
+            )
+        ))
         await db.commit()

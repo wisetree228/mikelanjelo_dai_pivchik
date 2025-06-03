@@ -55,3 +55,8 @@ async def handle_who_search(message: types.Message, state: FSMContext):
 @main_router.message(Form.like)
 async def handle_like(message: types.Message, state: FSMContext):
     return await like_controller(message, state)
+
+
+@main_router.message(Form.match)
+async def handle_match(message: types.Message, state: FSMContext):
+    return await match_controller(message, state)

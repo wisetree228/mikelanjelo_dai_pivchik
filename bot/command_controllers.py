@@ -1,4 +1,5 @@
 from aiogram.exceptions import TelegramAPIError
+from aiogram.enums import ParseMode
 import tempfile
 import os
 from db.requests import *
@@ -10,17 +11,18 @@ from bot.keyboards import *
 from bot.utils import *
 
 async def start_controller(message: types.Message, state: FSMContext):
-    user = await get_or_create_new_user(chat_id=message.chat.id)
+    user = await get_or_create_new_user(chat_id=message.chat.id, username=message.from_user.username, change_us=True)
     if (user.name is None) or (user.about is None) or (user.gender is None) or (user.age is None) or not(await get_user_media(user_id=message.chat.id)) or (user.who_search is None):
         await message.answer(f"Привет! Для твоего аккаунта не найдено уже существующих данных или данные не полные, видимо ты новичок. Чтобы пользоваться нашим ресурсом, тебе необходимо заполнить анкету. Введи своё имя:")
         await state.set_state(Form.name)
     else:
-        await message.answer('Привет! Это бот для знакомств "Микелянджело дай пивчик", главный конкурент "Леонардо дай винчика". Выбери опцию:', reply_markup=main_menu_keyboard)
+        await message.answer('Привет! Это бот для знакомств "Микелянджело дай пивчик", главный конкурент "Леонардо дай винчика". Выбери опцию:', reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
         await state.set_state(Form.main_menu)
 
 
 async def edit_profile_controller(message: types.Message, state: FSMContext):
     await message.answer('Хорошо, давай заполним твою анкету заново! Введи своё имя:')
+    await get_or_create_new_user(chat_id=message.chat.id, change_us=True, username=message.from_user.username)
     await state.set_state(Form.name)
 
 
@@ -35,10 +37,6 @@ async def set_name_controller(message: types.Message, state: FSMContext):
         await state.set_state(Form.name)
     else:
         await set_name(user_id=user.id, name=message.text)
-        # await message.answer(
-        #     '<b>введи возраст</b><a href="tg://user?id=945243562">какой-то юзер</a>',
-        #     parse_mode="HTML"
-        # )
         await message.answer("Отлично! Теперь введи свой возраст:")
         await state.set_state(Form.age)
 
@@ -148,7 +146,7 @@ async def edit_media_controller(message: types.Message, state: FSMContext):
                 video = await bot.download_file(file.file_path)
                 video_bytes = video.read()
                 await add_user_media(user_id=message.chat.id, media=video_bytes, type='video')
-            await message.answer('Ваши медиа добавлены в базу данных! Теперь выберите опцию:', reply_markup=main_menu_keyboard)
+            await message.answer('Ваши медиа добавлены в базу данных! Теперь выберите опцию:', reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
             await state.set_state(Form.main_menu)
 
 
@@ -156,7 +154,7 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
     if message.text == "Смотреть мою анкету":
         try:
             await message.answer("Ищем информацию о тебе...")
-            user = await get_or_create_new_user(chat_id=message.chat.id)
+            user = await get_or_create_new_user(chat_id=message.chat.id, change_us=True, username=message.from_user.username)
             if not user:
                 await message.answer("Не удалось найти ваши данные")
                 return
@@ -173,7 +171,9 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
                 f"Возраст: {user.age}\n"
                 f"Чьи анкеты вы ищете(W-женские, M-мужские, A-все): {user.who_search}\n"
                 f"Описание анкеты:\n{user.about}\n\n\n"
-                f"Чтобы редактировать свою анкету, нажми /edit"
+                f"Чтобы редактировать свою анкету, нажми /edit\n\n"
+                "Важное предупреждение: если в настройках приватности у вас выключена галочка 'предпросмотр ссылок'"
+                ", то пользователь который получит от вас лайк и поставит вам взаимный лайк не сможет получить работающую ссылку на ваш профиль!"
             )
             await send_media_group_with_caption(media_items=media_items, caption=caption, bot=message.bot, chat_id=message.chat.id)
             await state.set_state(Form.main_menu)
@@ -183,13 +183,27 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
 
     elif message.text == "Листать анкеты":
         await message.answer("Ищем вам анкету...")
+        await get_or_create_new_user(chat_id=message.chat.id, change_us=True, username=message.from_user.username)
         anket = await get_random_anket_for_match(user_id=message.chat.id)
         await send_media_group_with_caption(media_items=await get_user_media(anket.id), caption=await get_caption_for_user(anket), bot=message.bot, chat_id=message.chat.id)
         await state.update_data(object_id=anket.id)
         await message.answer("Выберите опцию:", reply_markup=like_keyboard)
         await state.set_state(Form.like)
+
+    elif message.text[:15] == "Входящие лайки:":
+        await get_or_create_new_user(chat_id=message.chat.id, change_us=True, username=message.from_user.username)
+        if await get_likes_count(message.chat.id) == 0:
+            await message.answer("Нет входящих лайков!", reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
+            await state.set_state(Form.main_menu)
+        else:
+            anket = await get_first_got_like_anket(user_id=message.chat.id)
+            await send_media_group_with_caption(media_items=await get_user_media(anket.id), caption="Входящий лайк:\n\n"+await get_caption_for_user(anket), bot=message.bot, chat_id=message.chat.id)
+            await message.answer("Выберите опцию:", reply_markup=like_keyboard)
+            await state.update_data(object_id=anket.id)
+            await state.set_state(Form.match)
     else:
         await message.answer("Введите одну из предоставленных на клавиатуре команд")
+        await state.set_state(Form.main_menu)
 
 
 async def like_controller(message: types.Message, state: FSMContext):
@@ -199,13 +213,45 @@ async def like_controller(message: types.Message, state: FSMContext):
         await create_like(author_id=message.chat.id, getter_id=anket_id)
         data.pop('object_id')
         await state.update_data(**data)
-        await message.answer('Ваш лайк записан. Выберите опцию:', reply_markup=main_menu_keyboard)
+        await message.answer('Ваш лайк записан. Выберите опцию:', reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
         await state.set_state(Form.main_menu)
     elif message.text == "Дизлайк":
         data.pop('object_id')
         await state.update_data(**data)
-        await message.answer('Окей, выберите опцию:', reply_markup=main_menu_keyboard)
+        await message.answer('Окей, выберите опцию:', reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
         await state.set_state(Form.main_menu)
     else:
-        await message.answer("Я тебя не понимаю! Выбери одну из предоставленных опций:", reply_markup=like_keyboard)
+        await message.answer("Я тебя не понимаю! Выбери одну из предоставленных опций для оценки этой анкеты:", reply_markup=like_keyboard)
         await state.set_state(Form.like)
+
+
+async def match_controller(message: types.Message, state: FSMContext):
+    if message.text == "Лайк":
+        data = await state.get_data()
+        anket_id = data.get('object_id')
+        await delete_likes_between_users(anket_id, message.chat.id)
+        anket = await get_or_create_new_user(anket_id)
+        if anket.username:
+            link = f'https://t.me/{anket.username}'
+        else:
+            link = f'tg://user?id={anket.id}'
+        await message.answer(
+            f'<b>Хорошо, у вас взаимный лайк с </b><a href="{link}">{anket.name} (ссылочка на профиль)</a>\n<b>Если ссылка на профиль не работает, проблема в том что пользователь установил такие настройки конфиденциальности или поменял юзернейм</b>',
+            parse_mode=ParseMode.HTML
+        )
+        data.pop('object_id')
+        await state.update_data(**data)
+        await message.answer("Выберите дальнейшую опцию:", reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
+        await state.set_state(Form.main_menu)
+    elif message.text == "Дизлайк":
+        data = await state.get_data()
+        anket_id = data.get('object_id')
+        await delete_likes_between_users(anket_id, message.chat.id)
+        data.pop('object_id')
+        await state.update_data(**data)
+        await message.answer("Окей, выберите дальнейшую опцию:",
+                             reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
+        await state.set_state(Form.main_menu)
+    else:
+        await message.answer("Я тебя не понимаю! Выбери одну из предоставленных опций для оценки человека, который тебя лайкнул:", reply_markup=like_keyboard)
+        await state.set_state(Form.match)
