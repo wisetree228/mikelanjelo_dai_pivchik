@@ -8,8 +8,10 @@ import os
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-
-engine = create_async_engine(DATABASE_URL, echo=True)
+if 'sqlite' in DATABASE_URL:
+    engine = create_async_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False})
+else:
+    engine = create_async_engine(DATABASE_URL, echo=True)
 Base = declarative_base()
 
 
@@ -31,7 +33,7 @@ class User(Base):
 
 class Media(Base):
     __tablename__ = 'media'
-    id = Column(BigInteger, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     file = Column(LargeBinary)
     media_type = Column(String)
     user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
@@ -40,7 +42,7 @@ class Media(Base):
 
 class Like(Base):
     __tablename__ = 'likes'
-    id = Column(BigInteger, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     author_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     getter_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
 

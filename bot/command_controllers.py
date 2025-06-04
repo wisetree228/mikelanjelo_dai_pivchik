@@ -5,7 +5,6 @@ import os
 from db.requests import *
 from aiogram.fsm.context import FSMContext
 from aiogram import types
-from io import BytesIO
 from bot.states import Form
 from bot.keyboards import *
 from bot.utils import *
@@ -176,6 +175,7 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
                 ", то пользователь который получит от вас лайк и поставит вам взаимный лайк не сможет получить работающую ссылку на ваш профиль!"
             )
             await send_media_group_with_caption(media_items=media_items, caption=caption, bot=message.bot, chat_id=message.chat.id)
+            await message.answer('Если не собираетесь редактировать анкету, выберите одну из предоставленных опций:', reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
             await state.set_state(Form.main_menu)
 
         except Exception as e:
@@ -185,7 +185,17 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
         await message.answer("Ищем вам анкету...")
         await get_or_create_new_user(chat_id=message.chat.id, change_us=True, username=message.from_user.username)
         anket = await get_random_anket_for_match(user_id=message.chat.id)
-        await send_media_group_with_caption(media_items=await get_user_media(anket.id), caption=await get_caption_for_user(anket), bot=message.bot, chat_id=message.chat.id)
+        if not anket:
+            await message.answer("Подходящих вам по полу и возрасту анкет пока зарегистрировано в нашем боте!", reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
+            await state.set_state(Form.main_menu)
+            return
+        media = await get_user_media(anket.id)
+        if len(media) == 0:
+            await message.answer(await get_caption_for_user(anket)+'\n\nNo photo/video', reply_markup=like_keyboard)
+            await state.update_data(object_id=anket.id)
+            await state.set_state(Form.like)
+            return
+        await send_media_group_with_caption(media_items=media, caption=await get_caption_for_user(anket), bot=message.bot, chat_id=message.chat.id)
         await state.update_data(object_id=anket.id)
         await message.answer("Выберите опцию:", reply_markup=like_keyboard)
         await state.set_state(Form.like)
@@ -197,6 +207,13 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
             await state.set_state(Form.main_menu)
         else:
             anket = await get_first_got_like_anket(user_id=message.chat.id)
+            media = await get_user_media(anket.id)
+            if len(media) == 0:
+                await message.answer(await get_caption_for_user(anket) + '\n\nNo photo/video',
+                                     reply_markup=like_keyboard)
+                await state.update_data(object_id=anket.id)
+                await state.set_state(Form.match)
+                return
             await send_media_group_with_caption(media_items=await get_user_media(anket.id), caption="Входящий лайк:\n\n"+await get_caption_for_user(anket), bot=message.bot, chat_id=message.chat.id)
             await message.answer("Выберите опцию:", reply_markup=like_keyboard)
             await state.update_data(object_id=anket.id)
@@ -236,7 +253,7 @@ async def match_controller(message: types.Message, state: FSMContext):
         else:
             link = f'tg://user?id={anket.id}'
         await message.answer(
-            f'<b>Хорошо, у вас взаимный лайк с </b><a href="{link}">{anket.name} (ссылочка на профиль)</a>\n<b>Если ссылка на профиль не работает, проблема в том что пользователь установил такие настройки конфиденциальности или поменял юзернейм</b>',
+            f'<b>Хорошо, у вас взаимный лайк с </b><a href="{link}">{anket.name} (ссылочка на профиль)</a>\n<b>Если ссылка на профиль не работает, проблема в том что пользователь установил такие настройки конфиденциальности</b>',
             parse_mode=ParseMode.HTML
         )
         data.pop('object_id')

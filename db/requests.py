@@ -1,3 +1,4 @@
+import random
 from sqlalchemy import select, and_, or_, delete
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
@@ -110,8 +111,8 @@ async def get_random_anket_for_match(user_id: int):
                     ),
                     User.id != user_id
                 )
-            ).order_by(func.random()).limit(1))
-            another_user = result.scalars().first()
+            ).order_by(func.random()))
+            users = result.scalars().all()
         elif user.who_search == 'W':
             result = await db.execute(select(User).filter(
                 and_(
@@ -124,8 +125,8 @@ async def get_random_anket_for_match(user_id: int):
                     ),
                     User.id != user_id
                 )
-            ).order_by(func.random()).limit(1))
-            another_user = result.scalars().first()
+            ).order_by(func.random()))
+            users = result.scalars().all()
         else:
             result = await db.execute(select(User).filter(
                 and_(
@@ -137,9 +138,11 @@ async def get_random_anket_for_match(user_id: int):
                     ),
                     User.id != user_id
                 )
-            ).order_by(func.random()).limit(1))
-            another_user = result.scalars().first()
-        return another_user
+            ).order_by(func.random()))
+            users = result.scalars().all()
+        if len(users):
+            return random.choice(users)
+        return None
 
 
 async def create_like(author_id: int, getter_id: int):
