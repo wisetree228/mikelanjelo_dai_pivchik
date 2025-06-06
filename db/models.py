@@ -1,3 +1,6 @@
+"""
+Модели (таблицы бд)
+"""
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, LargeBinary, BigInteger
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -16,6 +19,9 @@ Base = declarative_base()
 
 
 class User(Base):
+    """
+    Модель пользователя
+    """
     __tablename__ = 'users'
     id = Column(BigInteger, primary_key=True)
     name = Column(String)
@@ -32,6 +38,9 @@ class User(Base):
 
 
 class Media(Base):
+    """
+    Модель медиа (фото или видео пользователя)
+    """
     __tablename__ = 'media'
     id = Column(Integer, primary_key=True, autoincrement=True)
     file = Column(LargeBinary)
@@ -41,6 +50,9 @@ class Media(Base):
 
 
 class Like(Base):
+    """
+    Модель лайка от одного пользователя другому
+    """
     __tablename__ = 'likes'
     id = Column(Integer, primary_key=True, autoincrement=True)
     author_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)

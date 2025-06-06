@@ -1,3 +1,6 @@
+"""
+обработчики команд (основная логика)
+"""
 from aiogram.exceptions import TelegramAPIError
 from aiogram.enums import ParseMode
 import tempfile
@@ -10,6 +13,12 @@ from bot.keyboards import *
 from bot.utils import *
 
 async def start_controller(message: types.Message, state: FSMContext):
+    """
+    Обработка команды /start. Предлагает пользователю заполнить анкету (если о нём нет данных) или выбрать опцию из главного меню
+    :param message:
+    :param state:
+    :return:
+    """
     user = await get_or_create_new_user(chat_id=message.chat.id, username=message.from_user.username, change_us=True)
     if (user.name is None) or (user.about is None) or (user.gender is None) or (user.age is None) or not(await get_user_media(user_id=message.chat.id)) or (user.who_search is None):
         await message.answer(f"Привет! Для твоего аккаунта не найдено уже существующих данных или данные не полные, видимо ты новичок. Чтобы пользоваться нашим ресурсом, тебе необходимо заполнить анкету. Введи своё имя:")
@@ -20,12 +29,24 @@ async def start_controller(message: types.Message, state: FSMContext):
 
 
 async def edit_profile_controller(message: types.Message, state: FSMContext):
+    """
+    Обработка команды /edit. Заново заполняет анкету пользователя
+    :param message:
+    :param state:
+    :return:
+    """
     await message.answer('Хорошо, давай заполним твою анкету заново! Введи своё имя:')
     await get_or_create_new_user(chat_id=message.chat.id, change_us=True, username=message.from_user.username)
     await state.set_state(Form.name)
 
 
 async def set_name_controller(message: types.Message, state: FSMContext):
+    """
+    Меняет имя пользователя
+    :param message:
+    :param state:
+    :return:
+    """
     if await check_any_content(message):
         await message.answer("Отправьте только текст!")
         await state.set_state(Form.name)
@@ -41,6 +62,12 @@ async def set_name_controller(message: types.Message, state: FSMContext):
 
 
 async def set_age_controller(message: types.Message, state: FSMContext):
+    """
+    Меняет возраст пользователя
+    :param message:
+    :param state:
+    :return:
+    """
     if await check_any_content(message):
         await message.answer("Отправьте только текст!")
         await state.set_state(Form.age)
@@ -59,6 +86,12 @@ async def set_age_controller(message: types.Message, state: FSMContext):
 
 
 async def set_gender_controller(message: types.Message, state: FSMContext):
+    """
+    Меняет пол пользователя
+    :param message:
+    :param state:
+    :return:
+    """
     if await check_any_content(message):
         await message.answer("Отправьте только текст!")
         await state.set_state(Form.gender)
@@ -78,6 +111,12 @@ async def set_gender_controller(message: types.Message, state: FSMContext):
 
 
 async def set_description_controller(message: types.Message, state: FSMContext):
+    """
+    Меняет описание пользователя
+    :param message:
+    :param state:
+    :return:
+    """
     if await check_any_content(message):
         await message.answer("Отправьте только текст!")
         await state.set_state(Form.description)
@@ -95,6 +134,12 @@ async def set_description_controller(message: types.Message, state: FSMContext):
 
 
 async def who_search_controller(message: types.Message, state: FSMContext):
+    """
+    Меняет предпочтения пользователя (кого он ищет)
+    :param message:
+    :param state:
+    :return:
+    """
     if message.text == "Мужчин":
         await set_who_search(user_id=message.chat.id, target="M")
         await message.answer("Хорошо! Теперь отправьте до 3 фото и/или видео для своей анкеты (все ваши предыдущие фото и видео будут удалены и перезаписаны)")
@@ -114,6 +159,12 @@ async def who_search_controller(message: types.Message, state: FSMContext):
 
 
 async def edit_media_controller(message: types.Message, state: FSMContext):
+    """
+    Меняет медиафайлы (фото и видео) пользователя
+    :param message:
+    :param state:
+    :return:
+    """
     if not message.photo and not message.video:
         await message.answer('Отправьте картинки и/или видео, другой формат информации не принимается!')
         await state.set_state(Form.media)
@@ -150,6 +201,12 @@ async def edit_media_controller(message: types.Message, state: FSMContext):
 
 
 async def main_menu_controller(message: types.Message, state: FSMContext):
+    """
+    Обрабатывает команды главного меню
+    :param message:
+    :param state:
+    :return:
+    """
     if message.text == "Смотреть мою анкету":
         try:
             await message.answer("Ищем информацию о тебе...")
@@ -224,6 +281,12 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
 
 
 async def like_controller(message: types.Message, state: FSMContext):
+    """
+    Обрабатывает лайк или дизлайк на просмотренную анкету
+    :param message:
+    :param state:
+    :return:
+    """
     data = await state.get_data()
     anket_id = data.get('object_id')
     if message.text == "Лайк":
@@ -243,7 +306,14 @@ async def like_controller(message: types.Message, state: FSMContext):
 
 
 async def match_controller(message: types.Message, state: FSMContext):
+    """
+    Обрабатывает лайк или дизлайк в ответ на входящий лайк
+    :param message:
+    :param state:
+    :return:
+    """
     if message.text == "Лайк":
+        user = await get_or_create_new_user(chat_id=message.chat.id, change_us=True, username=message.from_user.username)
         data = await state.get_data()
         anket_id = data.get('object_id')
         await delete_likes_between_users(anket_id, message.chat.id)
@@ -254,6 +324,15 @@ async def match_controller(message: types.Message, state: FSMContext):
             link = f'tg://user?id={anket.id}'
         await message.answer(
             f'<b>Хорошо, у вас взаимный лайк с </b><a href="{link}">{anket.name} (ссылочка на профиль)</a>\n<b>Если ссылка на профиль не работает, проблема в том что пользователь установил такие настройки конфиденциальности</b>',
+            parse_mode=ParseMode.HTML
+        )
+
+        if user.username:
+            link2 = f'https://t.me/{user.username}'
+        else:
+            link2 = f'tg://user?id={user.id}'
+        await message.bot.send_message(chat_id=anket_id,
+            text=f'<b>У вас взаимный лайк с </b><a href="{link2}">{user.name} (ссылочка на профиль)</a>\n<b>Если ссылка на профиль не работает, проблема в том что пользователь установил такие настройки конфиденциальности</b>',
             parse_mode=ParseMode.HTML
         )
         data.pop('object_id')

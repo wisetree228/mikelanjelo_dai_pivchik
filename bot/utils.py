@@ -1,3 +1,6 @@
+"""
+Вспомогательные функции для бота
+"""
 from aiogram import types, Bot
 from typing import List
 from aiogram.exceptions import TelegramAPIError
@@ -5,12 +8,25 @@ from db.models import *
 import tempfile
 
 async def check_any_content(message: types.Message):
+    """
+    Проверяет, есть ли в сообщении что-то кроме текста
+    :param message:
+    :return:
+    """
     if message.document or message.audio or message.video or message.photo or message.voice or message.animation or message.video_note or message.sticker:
         return True
     return False
 
 
 async def send_media_group_with_caption(media_items: List[Media], caption: str, bot: Bot, chat_id: int):
+    """
+    Отправляет группу медиафайлов (обьектов Media) в чат
+    :param media_items: список Media
+    :param caption: подпись в сообщении
+    :param bot: бот, который отправляет
+    :param chat_id: id чата в который отправляем
+    :return:
+    """
     media_group = []
     temp_files = []
     for i, media_item in enumerate(media_items):
@@ -59,6 +75,11 @@ async def send_media_group_with_caption(media_items: List[Media], caption: str, 
 
 
 async def get_caption_for_user(user: User):
+    """
+    Возвращает описание анкеты для пользователя
+    :param user: обьект User
+    :return:
+    """
     caption = (
         f"Имя: {user.name}\n"
         f"Пол (M - man, W - woman): {user.gender}\n"

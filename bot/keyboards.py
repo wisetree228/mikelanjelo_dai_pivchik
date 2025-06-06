@@ -1,3 +1,6 @@
+"""
+клавиатуры бота
+"""
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 choose_gender_keyboard = ReplyKeyboardMarkup(keyboard=[
@@ -6,6 +9,11 @@ choose_gender_keyboard = ReplyKeyboardMarkup(keyboard=[
 
 
 async def get_main_menu_keyboard(likes_count: int):
+    """
+    Создаёт клавиатуру для главного меню с указанным количеством входящих лайков
+    :param likes_count:
+    :return:
+    """
     main_menu_keyboard = ReplyKeyboardMarkup(keyboard=[
         [KeyboardButton(text="Смотреть мою анкету")],
         [KeyboardButton(text="Листать анкеты")],

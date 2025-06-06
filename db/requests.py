@@ -1,3 +1,6 @@
+"""
+Функции для обращения к бд
+"""
 import random
 from sqlalchemy import select, and_, or_, delete
 from sqlalchemy.orm import joinedload
@@ -7,6 +10,15 @@ from db.async_session_generator import get_db
 from db.models import *
 
 async def get_or_create_new_user(chat_id: int, change_us: bool = False, username: str = None):
+    """
+    Принимает на вход id телеграм аккаунта и возвращает
+    привязанного к нему пользователя (если его нет, создаёт).
+    Если указать change_us = True, она обновит этому пользователю юзернейм
+    :param chat_id: id аккаунта
+    :param change_us: обновить ли юзернейм
+    :param username: юзернейм
+    :return: User
+    """
     async with get_db() as db:
         result_db = await db.execute(select(User).where(User.id==chat_id))
         user = result_db.scalars().first()
@@ -31,6 +43,12 @@ async def get_or_create_new_user(chat_id: int, change_us: bool = False, username
 
 
 async def set_name(user_id: int, name: str):
+    """
+    Записывает пользователю с указанным id указанное имя
+    :param user_id:
+    :param name:
+    :return:
+    """
     async with get_db() as db:
         result_db = await db.execute(select(User).where(User.id == user_id))
         user = result_db.scalars().first()
@@ -39,6 +57,12 @@ async def set_name(user_id: int, name: str):
 
 
 async def set_age(user_id: int, age: int):
+    """
+    Записывает пользователю с указанным id указанный возраст
+    :param user_id:
+    :param age:
+    :return:
+    """
     async with get_db() as db:
         result_db = await db.execute(select(User).where(User.id == user_id))
         user = result_db.scalars().first()
@@ -47,6 +71,12 @@ async def set_age(user_id: int, age: int):
 
 
 async def set_gender(user_id: int, gender: str):
+    """
+    Записывает пользователю с указанным id указанный пол
+    :param user_id:
+    :param gender:
+    :return:
+    """
     async with get_db() as db:
         result_db = await db.execute(select(User).where(User.id == user_id))
         user = result_db.scalars().first()
@@ -55,6 +85,12 @@ async def set_gender(user_id: int, gender: str):
 
 
 async def set_description(user_id: int, description: str):
+    """
+    Записывает пользователю с указанным id указанное описание
+    :param user_id:
+    :param description:
+    :return:
+    """
     async with get_db() as db:
         result_db = await db.execute(select(User).where(User.id == user_id))
         user = result_db.scalars().first()
@@ -63,6 +99,12 @@ async def set_description(user_id: int, description: str):
 
 
 async def set_who_search(user_id: int, target: str):
+    """
+    Записывает пользователю с указанным id параметр того кого он ищет
+    :param user_id:
+    :param description:
+    :return:
+    """
     async with get_db() as db:
         result_db = await db.execute(select(User).where(User.id == user_id))
         user = result_db.scalars().first()
@@ -71,6 +113,13 @@ async def set_who_search(user_id: int, target: str):
 
 
 async def add_user_media(user_id: int, media: bytes, type: str):
+    """
+    Добавляет в базу данных фото или видео пользователя
+    :param user_id:
+    :param media: байты файла
+    :param type: тип (photo или video)
+    :return:
+    """
     async with get_db() as db:
         new_media = Media(
             user_id=user_id,
@@ -82,6 +131,11 @@ async def add_user_media(user_id: int, media: bytes, type: str):
 
 
 async def delete_media(user_id: int):
+    """
+    Удаляет все медиафайлы пользователя
+    :param user_id:
+    :return:
+    """
     async with get_db() as db:
         result = await db.execute(select(Media).filter(Media.user_id==user_id))
         media = result.scalars().all()
@@ -91,12 +145,23 @@ async def delete_media(user_id: int):
 
 
 async def get_user_media(user_id: int):
+    """
+    Возвращает список обьектов Media пользователя
+    :param user_id:
+    :return:
+    """
     async with get_db() as db:
         result = await db.execute(select(Media).filter(Media.user_id==user_id))
         return result.scalars().all()
 
 
 async def get_random_anket_for_match(user_id: int):
+    """
+    Выбирает случайную анкету (обьект пользователя), которая
+    подходит для мэтча пользователю с введённым id
+    :param user_id: id пользователя которому мы ищем анкету
+    :return:
+    """
     async with get_db() as db:
         user = await get_or_create_new_user(chat_id=user_id)
         if user.who_search == 'M':
@@ -146,6 +211,12 @@ async def get_random_anket_for_match(user_id: int):
 
 
 async def create_like(author_id: int, getter_id: int):
+    """
+    Записывает в бд лайк от одного пользователя другому
+    :param author_id:
+    :param getter_id:
+    :return:
+    """
     async with get_db() as db:
         like = Like(
             getter_id=getter_id,
@@ -156,12 +227,22 @@ async def create_like(author_id: int, getter_id: int):
 
 
 async def get_likes_count(user_id: int):
+    """
+    Возвращает пользователю количество лайков которые поставили на его анкету
+    :param user_id:
+    :return:
+    """
     async with get_db() as db:
         count = await db.execute(select(func.count(Like.id)).where(Like.getter_id == user_id))
         return count.scalar_one()
 
 
 async def get_first_got_like_anket(user_id: int):
+    """
+    Возвращает пользователю первого из юзеров которые его лайкнули
+    :param user_id:
+    :return:
+    """
     async with get_db() as db:
         result = await db.execute(select(Like).where(Like.getter_id == user_id).options(
             joinedload(Like.author)
@@ -171,6 +252,12 @@ async def get_first_got_like_anket(user_id: int):
 
 
 async def delete_likes_between_users(first_user_id: int, second_user_id: int):
+    """
+    Удаляет лайки между двумя пользователями
+    :param first_user_id:
+    :param second_user_id:
+    :return:
+    """
     async with get_db() as db:
         await db.execute(delete(Like).where(
             or_(

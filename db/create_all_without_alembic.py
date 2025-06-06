@@ -1,3 +1,6 @@
+"""
+Создание таблиц без алембика
+"""
 from models import engine, Base
 import asyncio
 
