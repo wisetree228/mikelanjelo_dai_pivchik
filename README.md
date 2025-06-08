@@ -53,6 +53,7 @@ TOKEN=<your_token>
 DATABASE_URL=sqlite+aiosqlite:///C:/path/to/base/database.db
 ```
 Важно: путь до файла бд в URL должен быть абсолютным, а не относительным!
+
 5) Перейдите в директорию db (```cd db```) и выполните ```python3 create_all_without_alembic.py``` (создание таблиц в бд)
 6) Запустите скрипт, в корневой директории проекта выполните ```python3 main.py```
 7) Готово, бот должен работать!
