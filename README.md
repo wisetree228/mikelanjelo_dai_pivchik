@@ -23,7 +23,9 @@ DATABASE_URL=postgresql+asyncpg://wisetree:123456789@db:5432/mydb
 2) Поднять докер (на виндовс просто запустите docker desktop, на линуксе выполните команду ```sudo systemctl start docker```)
 3) Когда докер поднимется, откройте второй терминал и выполните ```sudo docker compose run --rm app alembic revision --autogenerate -m "New migration"``` а потом ```sudo docker compose run --rm app alembic upgrade head``` (создание таблиц в бд)
 4) Готово, бот должен работать!
+
 ### Запуск через питон с sqlite:
+
 1) Убедитесь, что на устройстве на котором запускаете установлен python
 2) создать виртуальное окружение:
 
@@ -47,17 +49,24 @@ venv\Scripts\activate
 ```commandline
 source venv/bin/activate
 ```
-4) В корневой директории проекта создать файл .env и там установить URL для подключения к базе данных и токен бота, пример:
+
+Установка зависимостей в виртуальное окружение:
+```
+pip install -r requirements.txt
+```
+
+5) В корневой директории проекта создать файл .env и там установить URL для подключения к базе данных и токен бота, пример:
 ```
 TOKEN=<your_token>
-DATABASE_URL=sqlite+aiosqlite:///C:/path/to/base/database.db
+DATABASE_URL=sqlite+aiosqlite:///./database.db
 ```
-Важно: путь до файла бд в URL должен быть абсолютным, а не относительным!
 
-5) Перейдите в директорию db (```cd db```) и выполните ```python3 create_all_without_alembic.py``` (создание таблиц в бд)
-6) Запустите скрипт, в корневой директории проекта выполните ```python3 main.py```
-7) Готово, бот должен работать!
+6) Запустите в корневой директории ```python3 db/create_all_without_alembic.py```
+7) Запустите скрипт, в корневой директории проекта выполните ```python3 main.py```
+8) Готово, бот должен работать!
+
 # Генерация документации
+
 1) Перейдите в папку docs (```cd docs```)
 2) выполните команду ```make html``` (если не сработало, то ```.\make html```)
 3) Теперь, когда документация сгенерирована, откройте в браузере файл который располагается по адресу ```docs/build/html/index.html```
