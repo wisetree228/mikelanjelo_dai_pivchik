@@ -11,6 +11,7 @@ from aiogram import types
 from bot.states import Form
 from bot.keyboards import *
 from bot.utils import *
+from re import sub
 
 async def start_controller(message: types.Message, state: FSMContext):
     """
@@ -168,6 +169,7 @@ async def edit_media_controller(message: types.Message, state: FSMContext):
     if not message.photo and not message.video:
         await message.answer('Отправьте картинки и/или видео, другой формат информации не принимается!')
         await state.set_state(Form.media)
+        return
     else:
         total_files = 0
         if message.photo:
@@ -178,6 +180,7 @@ async def edit_media_controller(message: types.Message, state: FSMContext):
         if total_files > 3:
             await message.answer('Максимум 3 файла!')
             await state.set_state(Form.media)
+            return
         else:
             bot = message.bot
             await delete_media(user_id=message.chat.id)
@@ -196,8 +199,43 @@ async def edit_media_controller(message: types.Message, state: FSMContext):
                 video = await bot.download_file(file.file_path)
                 video_bytes = video.read()
                 await add_user_media(user_id=message.chat.id, media=video_bytes, type='video')
-            await message.answer('Ваши медиа добавлены в базу данных! Теперь выберите опцию:', reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
-            await state.set_state(Form.main_menu)
+        await message.answer('Ваши медиа добавлены в базу данных! Теперь по желанию вы можете указать координаты своего местоположения (если не хотите или хотите удалить уже указанные координаты, нажмите "Отказаться"). Пришлите их в виде двух вещественных чисел через пробел, дробная часть должна быть отделена точкой, никаких лишних символов быть не должно. Координаты можно скопировать с любых онлайн-карт',
+                             reply_markup=change_coordinates_keyboard)
+        await state.set_state(Form.coordinates)
+
+
+async def change_location_controller(message: types.Message, state: FSMContext):
+    if message.text == "Отказаться":
+        await set_coordinates(message.chat.id, None, None)
+        await message.answer('Хорошо, если вы не указываете координаты то должны указать свой город. Введите название города в котором живёте без сокращений и орфографических ошибок:')
+        await state.set_state(Form.city)
+    else:
+        coords = message.text.split()
+        try:
+            lat = float(coords[0])
+            lon = float(coords[1])
+        except:
+            await message.answer('Некорректный формат координат! Введите их корректно или нажмите "Отказаться":', reply_markup=change_coordinates_keyboard)
+            await state.set_state(Form.coordinates)
+            return
+        await set_coordinates(message.chat.id, lat, lon)
+        await message.answer(
+            'Хорошо, теперь укажите свой город. Введите название города в котором живёте без сокращений и орфографических ошибок:')
+        await state.set_state(Form.city)
+
+
+async def edit_city_controller(message: types.Message, state: FSMContext):
+    city = sub(r'[^a-zа-яё]', '', message.text.lower())
+    if len(city) < 2:
+        await message.answer("Слишком короткое название города. Попробуйте ещё раз.")
+        return
+    if len(city) > 50:
+        await message.answer("Слишком длинное название города. Попробуйте ещё раз.")
+        return
+    await set_city(message.chat.id, city)
+    await message.answer("Хорошо, ваша анкета заполнена! Теперь выберите опцию:",
+                         reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
+    await state.set_state(Form.main_menu)
 
 
 async def main_menu_controller(message: types.Message, state: FSMContext):
@@ -229,7 +267,7 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
                 f"Описание анкеты:\n{user.about}\n\n\n"
                 f"Чтобы редактировать свою анкету, нажми /edit\n\n"
                 "Важное предупреждение: если в настройках приватности у вас выключена галочка 'предпросмотр ссылок'"
-                ", то пользователь который получит от вас лайк и поставит вам взаимный лайк не сможет получить работающую ссылку на ваш профиль!"
+                " и при этом у вас в телеграм нет юзернейма, то пользователь который получит от вас лайк и поставит вам взаимный лайк не сможет получить работающую ссылку на ваш профиль!"
             )
             await send_media_group_with_caption(media_items=media_items, caption=caption, bot=message.bot, chat_id=message.chat.id)
             await message.answer('Если не собираетесь редактировать анкету, выберите одну из предоставленных опций:', reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
@@ -243,7 +281,7 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
         await get_or_create_new_user(chat_id=message.chat.id, change_us=True, username=message.from_user.username)
         anket = await get_random_anket_for_match(user_id=message.chat.id)
         if not anket:
-            await message.answer("Подходящих вам по полу и возрасту анкет пока зарегистрировано в нашем боте!", reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
+            await message.answer("Подходящих вам по полу и возрасту анкет пока не зарегистрировано в нашем боте!", reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
             await state.set_state(Form.main_menu)
             return
         media = await get_user_media(anket.id)
@@ -252,7 +290,8 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
             await state.update_data(object_id=anket.id)
             await state.set_state(Form.like)
             return
-        await send_media_group_with_caption(media_items=media, caption=await get_caption_for_user(anket), bot=message.bot, chat_id=message.chat.id)
+        user = await get_or_create_new_user(message.chat.id)
+        await send_media_group_with_caption(media_items=media, caption=await get_caption_for_user(anket, user), bot=message.bot, chat_id=message.chat.id)
         await state.update_data(object_id=anket.id)
         await message.answer("Выберите опцию:", reply_markup=like_keyboard)
         await state.set_state(Form.like)
@@ -290,7 +329,8 @@ async def like_controller(message: types.Message, state: FSMContext):
     data = await state.get_data()
     anket_id = data.get('object_id')
     if message.text == "Лайк":
-        await create_like(author_id=message.chat.id, getter_id=anket_id)
+        if not(await exists_like_between_two_users(author_id=message.chat.id, getter_id=anket_id)):
+            await create_like(author_id=message.chat.id, getter_id=anket_id)
         data.pop('object_id')
         await state.update_data(**data)
         await message.answer('Ваш лайк записан. Выберите опцию:', reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))

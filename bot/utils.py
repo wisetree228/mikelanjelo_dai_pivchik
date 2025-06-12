@@ -74,16 +74,28 @@ async def send_media_group_with_caption(media_items: List[Media], caption: str, 
                 pass
 
 
-async def get_caption_for_user(user: User):
+async def get_caption_for_user(user: User, user_who_search: User):
     """
     Возвращает описание анкеты для пользователя
     :param user: обьект User
+    :param user_who_search: обьект юзера который получает анкету (для проверки расстояния)
     :return:
     """
-    caption = (
-        f"Имя: {user.name}\n"
-        f"Пол (M - man, W - woman): {user.gender}\n"
-        f"Возраст: {user.age}\n"
-        f"Описание:\n{user.about}\n\n\n"
-    )
+    if not( user.lat and user.lon and user_who_search.lat and user_who_search.lon ):
+        caption = (
+            f"Имя: {user.name}\n"
+            f"Пол (M - man, W - woman): {user.gender}\n"
+            f"Возраст: {user.age}\n"
+            f"Город: {user.city}\n"
+            f"Описание:\n{user.about}\n\n\n"
+        )
+    else:
+        caption = (
+            f"Имя: {user.name}\n"
+            f"Пол (M - man, W - woman): {user.gender}\n"
+            f"Возраст: {user.age}\n"
+            f"Город: {user.city}\n"
+            f"Расстояние: {round(user.haversine(user.lat, user.lon, user_who_search.lat, user_who_search.lon), 1)} км от вас\n"
+            f"Описание:\n{user.about}\n\n\n"
+        )
     return caption

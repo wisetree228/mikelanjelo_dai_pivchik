@@ -31,3 +31,7 @@ choose_who_you_search = ReplyKeyboardMarkup(keyboard=[
 like_keyboard = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="Лайк"), KeyboardButton(text="Дизлайк")]
 ], resize_keyboard=True, one_time_keyboard=True)
+
+change_coordinates_keyboard = ReplyKeyboardMarkup(keyboard=[
+    [KeyboardButton(text="Отказаться")]
+], resize_keyboard=True, one_time_keyboard=True)

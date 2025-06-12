@@ -66,6 +66,22 @@ async def handle_edit_media(message: types.Message, state: FSMContext):
     return await edit_media_controller(message, state)
 
 
+@main_router.message(Form.coordinates)
+async def handle_change_location(message: types.Message, state: FSMContext):
+    """
+    Обрабатывает смену геолокации
+    """
+    return await change_location_controller(message, state)
+
+
+@main_router.message(Form.city)
+async def handle_edit_city(message: types.Message, state: FSMContext):
+    """
+    Обрабатывает смену города
+    """
+    return await edit_city_controller(message, state)
+
+
 @main_router.message(Form.main_menu)
 async def handle_main_menu(message: types.Message, state: FSMContext):
     """

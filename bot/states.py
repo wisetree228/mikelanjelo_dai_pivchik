@@ -17,3 +17,5 @@ class Form(StatesGroup):
     who_search = State()
     like = State()
     match = State()
+    coordinates = State()
+    city = State()
