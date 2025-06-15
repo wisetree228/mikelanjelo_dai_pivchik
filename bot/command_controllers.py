@@ -297,7 +297,7 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
         await state.set_state(Form.like)
 
     elif message.text[:15] == "Входящие лайки:":
-        await get_or_create_new_user(chat_id=message.chat.id, change_us=True, username=message.from_user.username)
+        user = await get_or_create_new_user(chat_id=message.chat.id, change_us=True, username=message.from_user.username)
         if await get_likes_count(message.chat.id) == 0:
             await message.answer("Нет входящих лайков!", reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
             await state.set_state(Form.main_menu)
@@ -310,7 +310,7 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
                 await state.update_data(object_id=anket.id)
                 await state.set_state(Form.match)
                 return
-            await send_media_group_with_caption(media_items=await get_user_media(anket.id), caption="Входящий лайк:\n\n"+await get_caption_for_user(anket), bot=message.bot, chat_id=message.chat.id)
+            await send_media_group_with_caption(media_items=await get_user_media(anket.id), caption="Входящий лайк:\n\n"+await get_caption_for_user(anket, user), bot=message.bot, chat_id=message.chat.id)
             await message.answer("Выберите опцию:", reply_markup=like_keyboard)
             await state.update_data(object_id=anket.id)
             await state.set_state(Form.match)
