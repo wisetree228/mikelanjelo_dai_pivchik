@@ -25,7 +25,7 @@ async def start_controller(message: types.Message, state: FSMContext):
         await message.answer(f"Привет! Для твоего аккаунта не найдено уже существующих данных или данные не полные, видимо ты новичок. Чтобы пользоваться нашим ресурсом, тебе необходимо заполнить анкету. Введи своё имя:")
         await state.set_state(Form.name)
     else:
-        await message.answer('Привет! Это бот для знакомств "Микелянджело дай пивчик", главный конкурент "Леонардо дай винчика". Выбери опцию:', reply_markup=await get_main_menu_keyboard(await get_likes_count(message.chat.id)))
+        await message.answer('Привет! Это бот для знакомств "Микелянджело дай пивчик", главный конкурент "Леонардо дай винчика". Выбери опцию:', reply_markup=await get_main_menu_keyboard_inline(await get_likes_count(message.chat.id)))
         await state.set_state(Form.main_menu)
 
 
@@ -317,6 +317,41 @@ async def main_menu_controller(message: types.Message, state: FSMContext):
     else:
         await message.answer("Введите одну из предоставленных на клавиатуре команд")
         await state.set_state(Form.main_menu)
+
+
+async def watch_my_anket_controller(callback: types.CallbackQuery, state: FSMContext):
+    try:
+        await callback.message.edit_text("Ищем информацию о тебе...")
+        user_tg = await callback.bot.get_chat(callback.from_user.id)
+        username = user_tg.username
+        user = await get_or_create_new_user(chat_id=callback.from_user.id, change_us=True,
+                                            username=username)
+        if not user:
+            await callback.message.edit_text("Не удалось найти ваши данные")
+            return
+
+        media_items = await get_user_media(callback.from_user.id)
+        if not media_items:
+            await callback.message.edit_text("В вашей анкете нет медиафайлов")
+            return
+
+        caption = (
+            f"Ваше имя: {user.name}\n"
+            f"Ваш пол (M - man, W - woman): {user.gender}\n"
+            f"Возраст: {user.age}\n"
+            f"Чьи анкеты вы ищете(W-женские, M-мужские, A-все): {user.who_search}\n"
+            f"Описание анкеты:\n{user.about}\n\n\n"
+            f"Чтобы редактировать свою анкету, нажми /edit\n\n"
+            "Важное предупреждение: если в настройках приватности у вас выключена галочка 'предпросмотр ссылок'"
+            " и при этом у вас в телеграм нет юзернейма, то пользователь который получит от вас лайк и поставит вам взаимный лайк не сможет получить работающую ссылку на ваш профиль!"
+        )
+        await send_media_group_with_caption(media_items=media_items, caption=caption, bot=callback.message.bot,
+                                            chat_id=callback.from_user.id)
+        await callback.message.bot.send_message(chat_id=callback.from_user.id, text='Если не собираетесь редактировать анкету, выберите одну из предоставленных опций:',
+                             reply_markup=await get_main_menu_keyboard_inline(await get_likes_count(callback.from_user.id)))
+
+    except:
+        pass
 
 
 async def like_controller(message: types.Message, state: FSMContext):

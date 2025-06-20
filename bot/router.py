@@ -1,7 +1,7 @@
 """
 Роуты (обработчики состояний) бота
 """
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
 from bot.command_controllers import *
 from bot.states import Form
@@ -88,6 +88,11 @@ async def handle_main_menu(message: types.Message, state: FSMContext):
     Обрабатывает список команд из главного меню
     """
     return await main_menu_controller(message, state)
+
+
+@main_router.callback_query(F.data=='watch_my_anket')
+async def handle_watch_anket(callback: types.CallbackQuery, state: FSMContext):
+    return await watch_my_anket_controller(callback, state)
 
 
 @main_router.message(Form.who_search)
