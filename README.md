@@ -15,11 +15,7 @@
 
 ## Инструкция по локальному запуску
 
-### Предусмотрено 2 варианта запуска:
-1) Через docker-compose с СУБД PostgreSQL и Alembic для управления миграциями (рекомендуется для мощных серверов при большой нагрузке)
-2) Без докера, просто программа python и СУБД sqlite
 
-### Запуск через докер:
 1) В корневой директории проекта создать файл .env и там установить настройки подключения к БД, а также токен вашего телеграмм бота, пример:
 ```
 TOKEN=<your_token>
@@ -29,7 +25,8 @@ POSTGRES_DB=mydb
 DATABASE_URL=postgresql+asyncpg://wisetree:123456789@db:5432/mydb
 ```
 2) Поднять докер (на Windows просто запустите Docker Desktop, на Linux выполните команду `sudo systemctl start docker`)
-3) Когда Docker поднимется, откройте второй терминал и выполните
+3) Выполните команду `sudo docker compose up`
+4) Когда Docker поднимется, откройте второй терминал и выполните
 ```commandline
 sudo docker compose run --rm app alembic revision --autogenerate -m "New migration"
 ```
@@ -39,48 +36,8 @@ sudo docker compose run --rm app alembic upgrade head
 ```
 (создание таблиц в БД)
 
-4) Готово, бот должен работать!
+5) Готово, бот должен работать!
 
-### Запуск через питон с sqlite:
-1) Убедитесь, что на устройстве, на котором запускаете, установлен Python.
-2) Создайте виртуальное окружение:
-- для Windows:
-```commandline
-py -m venv venv
-```
-- для Linux:
-```commandline
-python3 -m venv venv
-```
-3) Активируйте:
-- для Windows:
-```commandline
-venv\Scripts\activate
-```
-- для Linux:
-```commandline
-source venv/bin/activate
-```
-4) Установите все зависимости (```pip install -r requirements.txt```)
-5) В корневой директории проекта создайте файл .env и там установите URL для подключения к базе данных и токен бота, пример:
-```
-TOKEN=<your_token>
-DATABASE_URL=sqlite+aiosqlite:///C:/path/to/base/database.db
-```
-Важно: путь до файла бд в URL должен быть абсолютным, а не относительным!
-(Иначе на windows не работают миграции)
-
-6) Перейдите в директорию db (```cd db```) и выполните 
-```commandline
-python3 create_all_without_alembic.py
-```
-(создание таблиц в БД)
-
-7) Запустите скрипт, в корневой директории проекта выполните 
-```commandline
-python3 main.py
-```
-8) Готово, бот должен работать!
 
 ## Генерация документации
 1) Перейдите в папку docs (```cd docs```)
