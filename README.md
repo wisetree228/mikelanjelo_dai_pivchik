@@ -63,11 +63,7 @@ The idea of the project is to try to replicate the dating bot "Leonardo give me 
 
 ## Instructions for local launch
 
-### There are 2 ways to launch:
-1) Through docker-compose with PostgreSQL and Alembic for migration management (recommended for powerful servers under heavy load)
-2) Without Docker, just the Python program and SQLite database
 
-### Launching via Docker:
 1) In the root directory of the project, create a `.env` file and set the database connection settings as well as your Telegram bot token, example:
 ```
 TOKEN=<your_token>
@@ -89,46 +85,7 @@ sudo docker compose run --rm app alembic upgrade head
 
 4) Done, the bot should work!
 
-### Launching via Python with SQLite:
-1) Make sure that Python is installed on the device you are running.
-2) Create a virtual environment:
-- for Windows:
-```commandline
-py -m venv venv
-```
-- for Linux:
-```commandline
-python3 -m venv venv
-```
-3) Activate:
-- for Windows:
-```commandline
-venv\Scripts\activate
-```
-- for Linux:
-```commandline
-source venv/bin/activate
-```
-4) Install all dependencies (```pip install -r requirements.txt```)
-5) In the root directory of the project, create a `.env` file and set the URL for connecting to the database and the bot token, example:
-```
-TOKEN=<your_token>
-DATABASE_URL=sqlite+aiosqlite:///C:/path/to/base/database.db
-```
-Important: the path to the database file in the URL must be absolute, not relative!
-(Else, migrations doesn't work on windows)
 
-6) Navigate to the db directory (```cd db```) and run:
-```commandline
-python3 create_all_without_alembic.py
-```
-(creating tables in the database)
-
-7) Run the script, in the root directory of the project run:
-```commandline
-python3 main.py
-```
-8) Done, the bot should work!
 
 ## Generating Documentation
 1) Navigate to the docs folder (```cd docs```)
